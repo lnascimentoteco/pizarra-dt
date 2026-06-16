@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Pizarra del DT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    
+    <style>
+        :root {
+            --celeste:      #74ACDF;
+            --celeste-med:  #4a8abf;
+            --celeste-dark: #1b5e8c;
+            --oro:          #F6B40E;
+            --oro-dark:     #c48f00;
+            --blanco:       #FFFFFF;
+            --azul-noche:   #0f1f3d;
+            --azul-medio:   #152b52;
+            --azul-panel:   #1a3564;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Barlow', sans-serif;
+            background-color: var(--azul-noche);
+            background-image: repeating-linear-gradient(
+                -45deg,
+                rgba(116,172,223,0.06) 0px, rgba(116,172,223,0.06) 1px,
+                transparent 1px, transparent 28px
+            );
+            color: var(--blanco);
+            padding-top: 76px;
+            min-height: 100vh;
+        }
+        body::before {
+            content:''; position:fixed; top:0; left:50%;
+            transform:translateX(-50%);
+            width:1px; height:100%;
+            background:rgba(116,172,223,0.06);
+            pointer-events:none; z-index:0;
+        }
+
+        /* ══ NAVBAR ══ */
+        .navbar {
+            position:fixed; top:0; left:0; right:0; z-index:100;
+            background: linear-gradient(90deg, var(--azul-noche) 0%, var(--azul-medio) 40%, var(--azul-panel) 100%);
+            border-bottom: 3px solid var(--celeste);
+            height: 76px; padding: 0 20px;
+            display:flex; align-items:center; justify-content:space-between; gap:12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+        }
+        .navbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .navbar-brand {
+            font-family:'Bebas Neue', sans-serif;
+            font-size:26px; letter-spacing:3px; color:var(--blanco);
+            text-shadow: 0 0 20px rgba(116,172,223,0.4); white-space:nowrap;
+        }
+        .navbar-brand em { color:var(--celeste); font-style:normal; }
+        #reloj {
+            font-family:'Bebas Neue',sans-serif;
+            font-size:40px; letter-spacing:4px; color:var(--celeste);
+            text-shadow:0 0 15px rgba(116,172,223,0.5);
+            min-width:110px; text-align:center;
+        }
+        @keyframes pulseRojo {
+            0%,100%{ color:#ef4444; text-shadow:0 0 12px rgba(239,68,68,0.8); }
+            50%    { color:#fca5a5; text-shadow:0 0 24px rgba(239,68,68,1); }
+        }
+        .reloj-urgente { animation: pulseRojo 0.8s ease infinite !important; }
+
+        .btn {
+            font-family:'Barlow Condensed',sans-serif; font-weight:700;
+            font-size:14px; letter-spacing:1px; text-transform:uppercase;
+            padding:7px 14px; border-radius:5px; border:none; cursor:pointer; transition:all 0.15s;
+        }
+        .btn:active { transform:scale(0.95); }
+        .btn-ghost { background:rgba(255,255,255,0.07); color:#ccc; border:1px solid rgba(255,255,255,0.15); }
+        .btn-ghost:hover { background:rgba(255,255,255,0.14); color:#fff; }
+        .btn-celeste { background:var(--celeste); color:#0a1628; font-weight:800; }
+        .btn-celeste:hover { background:var(--celeste-med); }
+        .btn-danger { background:rgba(220,38,38,0.15); color:#f87171; border:1px solid rgba(220,38,38,0.35); font-size:14px; }
+        .btn-danger:hover { background:rgba(220,38,38,0.3); }
+        .btn-tabla {
+            background:linear-gradient(135deg,var(--celeste-dark),var(--celeste-med));
+            color:#fff; border:1px solid var(--celeste);
+            padding:7px 18px; font-size:14px; letter-spacing:1px;
+        }
+        .btn-tabla:hover { background:linear-gradient(135deg,var(--celeste-med),var(--celeste)); }
+        .btn-tabla.activo {
+            background:linear-gradient(135deg,#d97706,#f59e0b);
+            border-color:var(--oro); color:#1a1a1a;
+        }
+        .fase-select {
+            background:rgba(0,0,0,0.35); border:1px solid rgba(116,172,223,0.35); color:var(--celeste);
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px;
+            letter-spacing:1px; text-transform:uppercase; padding:7px 10px; border-radius:4px; outline:none; cursor:pointer;
+        }
+        .olas-badge {
+            background:rgba(116,172,223,0.12); border:1px solid rgba(116,172,223,0.35);
+            border-radius:6px; padding:6px 14px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px; color:var(--celeste); white-space:nowrap;
+        }
+
+        /* ══ MODAL TABLA DE POSICIONES ══ */
+        #modal-tabla {
+            display:none;
+            position:fixed; inset:0;
+            background:rgba(0,0,0,0.82);
+            backdrop-filter:blur(6px);
+            z-index:500;
+            align-items:center; justify-content:center;
+        }
+        #modal-tabla.visible { display:flex; }
+        .modal-tabla-box {
+            background: linear-gradient(160deg, var(--azul-panel), var(--azul-medio));
+            border:2px solid var(--celeste);
+            border-radius:14px; padding:32px 36px;
+            max-width:560px; width:92%;
+            box-shadow:0 0 60px rgba(116,172,223,0.25);
+            position:relative;
+        }
+        .modal-tabla-box h2 {
+            font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:4px;
+            color:var(--blanco); margin-bottom:20px; text-align:center;
+        }
+        .modal-tabla-box h2 em { color:var(--celeste); font-style:normal; }
+        .modal-close {
+            position:absolute; top:14px; right:18px;
+            background:none; border:none; color:rgba(255,255,255,0.4);
+            font-size:22px; cursor:pointer; transition:color 0.15s;
+        }
+        .modal-close:hover { color:#fff; }
+
+        .pos-table { width:100%; border-collapse:collapse; }
+        .pos-table th {
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px;
+            letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.4);
+            padding:8px 10px; border-bottom:1px solid rgba(116,172,223,0.2); text-align:left;
+        }
+        .pos-table td {
+            padding:11px 10px; border-bottom:1px solid rgba(255,255,255,0.05);
+            font-family:'Barlow Condensed',sans-serif; font-size:15px; vertical-align:middle;
+        }
+        .pos-table tr:hover td { background:rgba(116,172,223,0.05); }
+        .pos-rank { color:rgba(255,255,255,0.3); font-weight:700; font-size:18px; width:32px; }
+        .pos-nombre { font-weight:700; color:var(--blanco); }
+        .pos-gf { color:#4ade80; font-weight:700; text-align:center; }
+        .pos-gc { color:#f87171; font-weight:700; text-align:center; }
+        .pos-dif-pos { color:#4ade80; font-weight:900; font-size:17px; text-align:center; }
+        .pos-dif-neg { color:#f87171; font-weight:900; font-size:17px; text-align:center; }
+        .pos-dif-cero { color:rgba(255,255,255,0.2); font-weight:700; text-align:center; }
+        .pos-bar-wrap { width:90px; }
+        .pos-bar {
+            height:8px; border-radius:4px;
+            background:linear-gradient(90deg,#4ade80,var(--celeste));
+        }
+        .pos-bar.neg { background:linear-gradient(90deg,#ef4444,#f87171); }
+        .medal { font-size:18px; }
+
+        /* ══ HEADER ══ */
+        .page-header { text-align:center; padding:32px 24px 16px; position:relative; z-index:1; }
+        .escudo-header { font-size:56px; margin-bottom:8px; filter:drop-shadow(0 0 16px rgba(116,172,223,0.5)); }
+        .page-header h1 {
+            font-family:'Bebas Neue',sans-serif; font-size:clamp(38px,7vw,68px);
+            letter-spacing:6px; color:var(--blanco); line-height:1;
+        }
+        .page-header h1 em { color:var(--celeste); font-style:normal; }
+        .page-header .subtitulo {
+            font-family:'Barlow Condensed',sans-serif; font-size:14px; letter-spacing:4px;
+            text-transform:uppercase; color:rgba(255,255,255,0.55); margin-top:4px;
+        }
+        .banda-arg { display:flex; height:6px; max-width:280px; margin:16px auto 0; border-radius:3px; overflow:hidden; }
+        .banda-arg div:nth-child(1), .banda-arg div:nth-child(3) { background:var(--celeste); flex:1; }
+        .banda-arg div:nth-child(2) { background:var(--blanco); flex:1; }
+
+        /* ══ SECCIÓN ══ */
+        .seccion-titulo {
+            max-width:1100px; margin:32px auto 16px; padding:0 16px;
+            position:relative; z-index:1;
+            display:flex; align-items:center; gap:14px;
+        }
+        .seccion-titulo h2 {
+            font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:4px; color:var(--blanco); white-space:nowrap;
+        }
+        .seccion-titulo h2 em { color:var(--celeste); font-style:normal; }
+        .seccion-linea { flex:1; height:1px; background:rgba(116,172,223,0.35); }
+        .seccion-num { font-family:'Bebas Neue',sans-serif; font-size:36px; color:rgba(116,172,223,0.4); line-height:1; }
+        .seccion-sub { font-family:'Barlow Condensed',sans-serif; font-size:13px; letter-spacing:1px; color:rgba(255,255,255,0.5); text-transform:uppercase; white-space:nowrap; }
+
+        /* ══ FORM CARD ══ */
+        .form-card { max-width:1100px; margin:0 auto 12px; padding:0 16px; position:relative; z-index:1; }
+        .form-inner { background:rgba(255,255,255,0.07); border:1px solid rgba(116,172,223,0.25); border-radius:10px; padding:16px 20px; }
+        .form-row { display:flex; gap:10px; flex-wrap:wrap; }
+        .input-field {
+            background:rgba(0,0,0,0.35); border:1px solid rgba(116,172,223,0.35);
+            color:white; padding:10px 14px; border-radius:6px;
+            font-family:'Barlow',sans-serif; font-size:14px;
+            outline:none; transition:border-color 0.2s; flex:1; min-width:180px;
+        }
+        .input-field:focus { border-color:var(--celeste); }
+        .input-field::placeholder { color:rgba(255,255,255,0.25); }
+        .zona-select {
+            background:rgba(0,0,0,0.35); border:1px solid rgba(116,172,223,0.35);
+            color:white; padding:10px 14px; border-radius:6px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:14px;
+            outline:none; cursor:pointer; min-width:240px;
+        }
+        .zona-select option { background:#0d2240; }
+        .resultado-select {
+            background:rgba(0,0,0,0.35); border:1px solid rgba(116,172,223,0.35);
+            color:white; padding:10px 14px; border-radius:6px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px;
+            outline:none; cursor:pointer; min-width:160px;
+        }
+        .resultado-select option { background:#0d2240; }
+        .btn-fijar {
+            background:linear-gradient(135deg,var(--celeste-dark),var(--celeste-med));
+            color:#fff; font-family:'Barlow Condensed',sans-serif; font-weight:800;
+            font-size:15px; letter-spacing:2px; text-transform:uppercase;
+            padding:10px 26px; border:none; border-radius:6px; cursor:pointer;
+            transition:all 0.15s; white-space:nowrap;
+        }
+        .btn-fijar:hover { background:linear-gradient(135deg,var(--celeste-med),var(--celeste)); }
+        .btn-fijar:active { transform:scale(0.97); }
+
+        /* ══ TABLERO ══ */
+        .tablero {
+            display:grid; grid-template-columns:repeat(3,1fr);
+            gap:18px; max-width:1100px; margin:0 auto 16px; padding:0 16px;
+            position:relative; z-index:1;
+        }
+        @media(max-width:768px){ .tablero{ grid-template-columns:1fr; } }
+        .columna {
+            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+            border-radius:12px; padding:16px; min-height:300px;
+        }
+        .col-header {
+            text-align:center; font-family:'Bebas Neue',sans-serif;
+            font-size:20px; letter-spacing:3px;
+            padding-bottom:12px; margin-bottom:14px; border-bottom:2px solid; line-height:1.2;
+        }
+        .col-gol     .col-header { color:#4ade80; border-color:#4ade80; }
+        .col-offside .col-header { color:#f87171; border-color:#f87171; }
+        .col-pelota  .col-header { color:var(--oro); border-color:var(--oro); }
+
+        /* ══ TARJETA ══ */
+        .tarjeta {
+            background:#f0f4f8; border-radius:8px; padding:14px 14px 10px;
+            margin-bottom:10px; position:relative;
+            box-shadow:2px 4px 12px rgba(0,0,0,0.4);
+            transition:transform 0.2s, box-shadow 0.2s;
+        }
+        .tarjeta:hover { transform:translateY(-3px) scale(1.02); box-shadow:4px 8px 20px rgba(0,0,0,0.55); z-index:10; }
+        .franja-top { position:absolute; top:0; left:0; right:0; height:5px; border-radius:8px 8px 0 0; }
+        .franja-gol     { background:linear-gradient(90deg,#22c55e,#4ade80); }
+        .franja-offside { background:linear-gradient(90deg,#ef4444,#f87171); }
+        .franja-pelota  { background:linear-gradient(90deg,var(--oro-dark),var(--oro)); }
+        .tarjeta::after {
+            content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
+            border-radius:0 0 8px 8px;
+            background:linear-gradient(90deg,var(--celeste) 33%,#fff 33%,#fff 66%,var(--celeste) 66%);
+            opacity:0.4;
+        }
+        .comp-badge {
+            display:inline-block; background:rgba(116,172,223,0.15);
+            border:1px solid rgba(116,172,223,0.3);
+            border-radius:4px; padding:2px 8px; margin-bottom:6px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:11px;
+            letter-spacing:0.5px; color:var(--celeste-dark); max-width:100%;
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        }
+        .tarjeta-texto {
+            font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;
+            color:#1a2a3a; text-align:center; line-height:1.4;
+            word-break:break-word; margin-bottom:8px;
+        }
+        .tarjeta-footer {
+            display:flex; justify-content:space-between; align-items:center;
+            border-top:1px solid #cbd5e1; padding-top:7px;
+        }
+        .ola-btn { font-size:17px; cursor:pointer; transition:transform 0.1s; user-select:none; display:flex; align-items:center; gap:4px; }
+        .ola-btn:active { transform:scale(0.82); }
+        .votos-count { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px; color:#1e3a5f; }
+        .del-btn { font-size:13px; cursor:pointer; color:#94a3b8; transition:color 0.15s; }
+        .del-btn:hover { color:#ef4444; }
+
+        /* ══ ETIQUETAS ══ */
+        .etiquetas-wrap { max-width:1100px; margin:0 auto 12px; padding:0 16px; position:relative; z-index:1; }
+        .etiquetas-inner { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:20px; }
+        .etiquetas-cloud { display:flex; flex-wrap:wrap; gap:10px; min-height:60px; margin-bottom:16px; align-items:flex-start; }
+        .etiqueta-tag {
+            background:rgba(116,172,223,0.12); border:1px solid rgba(116,172,223,0.3);
+            border-radius:20px; padding:6px 14px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px;
+            letter-spacing:0.5px; color:var(--celeste);
+            display:flex; align-items:center; gap:8px;
+            cursor:default; transition:all 0.2s;
+        }
+        .etiqueta-tag:hover { background:rgba(116,172,223,0.35); transform:translateY(-1px); }
+        .etiqueta-votos { background:rgba(116,172,223,0.25); border-radius:10px; padding:1px 7px; font-size:12px; color:#fff; font-weight:700; }
+        .etiqueta-del { font-size:11px; cursor:pointer; color:rgba(255,255,255,0.3); }
+        .etiqueta-del:hover { color:#ef4444; }
+        .etiqueta-ola { cursor:pointer; font-size:14px; transition:transform 0.1s; }
+        .etiqueta-ola:active { transform:scale(0.8); }
+        .etiquetas-form { display:flex; gap:10px; }
+
+        /* ══ DOLORES (post-its) ══ */
+        .dolores-wrap { max-width:1100px; margin:0 auto 12px; padding:0 16px; position:relative; z-index:1; }
+        .dolores-inner { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:20px; }
+        .dolores-grid { display:flex; flex-wrap:wrap; gap:14px; min-height:80px; margin-bottom:16px; align-items:flex-start; }
+        .dolor-postit {
+            background:#fef9c3; border-radius:4px; padding:14px 16px;
+            width:180px; min-height:100px;
+            box-shadow:3px 4px 10px rgba(0,0,0,0.35), inset 0 -2px 4px rgba(0,0,0,0.05);
+            font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;
+            color:#1a1a1a; line-height:1.4; word-break:break-word;
+            position:relative; transition:transform 0.2s, box-shadow 0.2s;
+            animation: stickyIn 0.25s ease;
+        }
+        .dolor-postit:hover { transform:rotate(0deg) scale(1.04); box-shadow:5px 7px 18px rgba(0,0,0,0.5); z-index:10; }
+        .dolor-postit:nth-child(3n+1) { transform:rotate(-1.5deg); }
+        .dolor-postit:nth-child(3n+2) { transform:rotate(1deg); background:#fce4d6; }
+        .dolor-postit:nth-child(3n+3) { transform:rotate(-0.5deg); background:#e0f2fe; }
+        .dolor-del { position:absolute; top:6px; right:8px; font-size:12px; cursor:pointer; color:rgba(0,0,0,0.2); transition:color 0.15s; }
+        .dolor-del:hover { color:#ef4444; }
+        @keyframes stickyIn {
+            from { opacity:0; transform:scale(0.85) rotate(-3deg); }
+            to   { opacity:1; }
+        }
+        .dolores-form { display:flex; gap:10px; }
+        .dolor-textarea {
+            background:rgba(0,0,0,0.35); border:1px solid rgba(116,172,223,0.35);
+            color:white; padding:10px 14px; border-radius:6px;
+            font-family:'Barlow',sans-serif; font-size:14px;
+            outline:none; transition:border-color 0.2s; flex:1; resize:none; height:42px;
+        }
+        .dolor-textarea:focus { border-color:var(--celeste); }
+        .dolor-textarea::placeholder { color:rgba(255,255,255,0.25); }
+
+        /* ══ COMPROMISOS ══ */
+        .compromisos-section { max-width:1100px; margin:0 auto 48px; padding:0 16px; position:relative; z-index:1; }
+        .compromisos-card {
+            background: linear-gradient(160deg, rgba(21,43,82,0.95), rgba(15,31,61,0.98));
+            border:1px solid rgba(116,172,223,0.3); border-top:3px solid var(--celeste);
+            border-radius:12px; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.4);
+        }
+        .compromisos-title {
+            font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:4px; color:var(--blanco);
+            border-bottom:1px solid rgba(116,172,223,0.2); padding-bottom:12px; margin-bottom:20px;
+        }
+        .compromisos-title em { color:var(--celeste); font-style:normal; }
+        .comp-form { display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+        @media(max-width:768px){ .comp-form{ grid-template-columns:1fr; } }
+        .btn-firmar {
+            grid-column:1/-1;
+            background:linear-gradient(135deg,rgba(116,172,223,0.15),rgba(116,172,223,0.08));
+            border:1px solid rgba(116,172,223,0.4); color:var(--celeste);
+            font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:15px;
+            letter-spacing:2px; text-transform:uppercase; padding:10px;
+            border-radius:6px; cursor:pointer; transition:all 0.15s;
+        }
+        .btn-firmar:hover { background:linear-gradient(135deg,rgba(116,172,223,0.28),rgba(116,172,223,0.15)); }
+
+        .comp-table { width:100%; border-collapse:collapse; font-size:14px; }
+        .comp-table th {
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px;
+            letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.6);
+            padding:10px 12px; text-align:left; border-bottom:1px solid rgba(116,172,223,0.3);
+        }
+        .comp-table td {
+            padding:13px 12px; border-bottom:1px solid rgba(255,255,255,0.05);
+            color:rgba(255,255,255,0.95); vertical-align:middle;
+        }
+        .comp-table tr:hover td { background:rgba(116,172,223,0.04); }
+        .rol-tag {
+            display:inline-block; padding:3px 10px; border-radius:20px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px;
+            letter-spacing:1px; text-transform:uppercase;
+            background:rgba(116,172,223,0.15); color:var(--celeste); border:1px solid rgba(116,172,223,0.3);
+        }
+        .estado-select {
+            background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15);
+            border-radius:5px; padding:5px 10px;
+            font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px;
+            cursor:pointer; outline:none; transition:all 0.2s;
+        }
+        .estado-sin-avances { color:#9ca3af; border-color:rgba(156,163,175,0.3); }
+        .estado-en-curso  { color:var(--oro); border-color:rgba(246,180,14,0.4); }
+        .estado-logrado   { color:#4ade80; border-color:rgba(74,222,128,0.4); }
+
+        .divider { max-width:1100px; margin:8px auto 0; padding:0 16px; position:relative; z-index:1; }
+        .divider hr { border:none; border-top:1px solid rgba(116,172,223,0.12); }
+
+        /* ══ PRINT ══ */
+        @media print {
+            @page { size:A4; margin:15mm; }
+            body { background:#fff!important; background-image:none!important; color:#000!important; padding-top:0!important; }
+            body::before,.navbar,.form-card,.btn-tabla,.btn-danger,.del-btn,.ola-btn,
+            .etiquetas-form,.etiqueta-del,.etiqueta-ola,.comp-form,.btn-firmar,
+            .dolores-form,.dolor-del,#modal-tabla { display:none!important; }
+            .tablero { display:flex!important; gap:8mm!important; }
+            .columna { border:1px solid #ccc!important; background:transparent!important; }
+            .col-header { color:#000!important; border-color:#000!important; text-shadow:none!important; }
+            .tarjeta { background:#f8f8f8!important; box-shadow:none!important; transform:none!important; border:1px solid #ddd!important; }
+            .tarjeta::after,.franja-top { display:none!important; }
+            .tarjeta-texto { color:#000!important; }
+            .comp-badge { color:#000!important; background:#eee!important; }
+            .compromisos-card { background:transparent!important; border:none!important; }
+            .comp-table th,.comp-table td { color:#000!important; border:1px solid #999!important; }
+            .comp-table th { background:#eee!important; }
+            .estado-select { border:none!important; background:transparent!important; color:#000!important; appearance:none!important; }
+            .dolor-postit { background:#fef9c3!important; box-shadow:none!important; transform:none!important; color:#000!important; border:1px solid #e5e7eb!important; }
+        }
+
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .tarjeta { animation:slideIn 0.22s ease; }
+        @keyframes popIn { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+        .etiqueta-tag { animation:popIn 0.2s ease; }
+    </style>
+</head>
+<body>
+
+<!-- ══ MODAL TABLA DE POSICIONES ══ -->
+<div id="modal-tabla">
+    <div class="modal-tabla-box">
+        <button class="modal-close" onclick="cerrarTabla()">✕</button>
+        <h2>🏆 Tabla de <em>Posiciones</em></h2>
+        <table class="pos-table" id="pos-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Compromiso</th>
+                    <th style="text-align:center;">GF</th>
+                    <th style="text-align:center;">GC</th>
+                    <th style="text-align:center;">DIF</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="pos-tbody"></tbody>
+        </table>
+        <p style="font-family:'Barlow Condensed';font-size:12px;letter-spacing:1px;color:rgba(255,255,255,0.25);text-align:center;margin-top:16px;text-transform:uppercase;">
+            GF = Goles a favor · GC = Goles en contra · Solo se muestran compromisos con votos
+        </p>
+    </div>
+</div>
+
+<!-- ══ NAVBAR ══ -->
+<nav class="navbar">
+    <div class="navbar-left">
+        <span class="navbar-brand">⚽ La <em>Pizarra</em> del DT</span>
+        <select id="fase-actual" class="fase-select">
+            <option value="15">⚽ Primer Tiempo (15')</option>
+            <option value="15">⚽ Segundo Tiempo (15')</option>
+            <option value="10">🏆 Prórroga (10')</option>
+        </select>
+        <button class="btn btn-ghost" onclick="iniciarCronometro()">▶ Iniciar</button>
+        <button class="btn btn-ghost" id="btn-pausa" onclick="pausarCronometro()">⏸ Pausar</button>
+        <button class="btn btn-ghost" onclick="resetearCronometro()">⏹ Reset</button>
+        <button class="btn btn-celeste" onclick="window.print()" style="margin-left:6px;">📋 Exportar</button>
+        <button class="btn btn-danger" onclick="pitazoFinal()">🏁 Pitazo Final</button>
+    </div>
+    <div id="reloj">00:00</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-tabla" id="btn-tabla" onclick="abrirTabla()">📊 Tabla de Posiciones</button>
+    </div>
+</nav>
+
+<!-- ══ HEADER ══ -->
+<header class="page-header">
+    <div class="escudo-header">🇦🇷</div>
+    <h1>La Pizarra <em>del DT</em></h1>
+    <p class="subtitulo">Retrospectiva · Scaloneta Style · Sprint Review</p>
+    <div class="banda-arg"><div></div><div></div><div></div></div>
+</header>
+
+<!-- ══ 01 REVISIÓN COMPROMISOS ══ -->
+<div class="seccion-titulo">
+    <span class="seccion-num">01</span>
+    <h2>Revisión de <em>Compromisos</em></h2>
+    <div class="seccion-linea"></div>
+    <span class="seccion-sub">¿Cómo salió el partido?</span>
+</div>
+
+<div class="form-card">
+    <div class="form-inner">
+        <div class="form-row">
+            <select id="zona-comp" class="zona-select">
+                <option value="" disabled selected>— Elegí el compromiso —</option>
+                <option value="comp1">Implementador para proceso FT y QA</option>
+                <option value="comp2">Cámaras prendidas en refinamiento</option>
+                <option value="comp3">Planificación de insumos en refinamiento</option>
+                <option value="comp4">Estimar historia en último refinamiento</option>
+                <option value="comp5">Prueba de integración antes de RFT</option>
+            </select>
+            <select id="resultado" class="resultado-select">
+                <option value="gol">⚽ Gol — Se cumplió</option>
+                <option value="offside">🚫 Offside — No se cumplió</option>
+                <option value="pelota">🔄 Pelota parada — Sigue</option>
+            </select>
+            <input type="text" id="mensaje" class="input-field" placeholder="Comentario (opcional)..." autocomplete="off">
+            <button class="btn-fijar" onclick="enviarReporte()">Fijar ⚡</button>
+        </div>
+    </div>
+</div>
+
+<div class="tablero" id="tablero-principal">
+    <div class="columna col-gol">
+        <div class="col-header">⚽ Gol<br><small style="font-family:'Barlow Condensed';font-size:11px;letter-spacing:1px;font-weight:600;">Se Cumplió</small></div>
+        <div id="col-gol"></div>
+    </div>
+    <div class="columna col-offside">
+        <div class="col-header">🚫 Offside<br><small style="font-family:'Barlow Condensed';font-size:11px;letter-spacing:1px;font-weight:600;">No Se Cumplió</small></div>
+        <div id="col-offside"></div>
+    </div>
+    <div class="columna col-pelota">
+        <div class="col-header">🔄 Pelota Parada<br><small style="font-family:'Barlow Condensed';font-size:11px;letter-spacing:1px;font-weight:600;">Sigue / Se Reformula</small></div>
+        <div id="col-pelota"></div>
+    </div>
+</div>
+
+<div class="divider"><hr></div>
+
+<!-- ══ 03 COMPROMISOS SPRINT ANTERIOR ══ -->
+<div class="seccion-titulo">
+    <span class="seccion-num">02</span>
+    <h2>Compromisos <em>Sprint Anterior</em></h2>
+    <div class="seccion-linea"></div>
+    <span class="seccion-sub">Se completa entre todos</span>
+</div>
+
+<div class="compromisos-section" style="margin-top:0;">
+    <div class="compromisos-card">
+        <div style="overflow-x:auto;">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th style="width:36%;">Acción</th>
+                        <th style="width:16%;">Responsable</th>
+                        <th style="width:30%;">Criterio de Éxito</th>
+                        <th style="width:18%;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-sprint-anterior"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="divider"><hr></div>
+
+<!-- ══ 04 NUEVOS COMPROMISOS ══ -->
+<div class="seccion-titulo">
+    <span class="seccion-num">03</span>
+    <h2>Ajustes a <em>Compromisos</em></h2>
+    <div class="seccion-linea"></div>
+    <span class="seccion-sub">Reformulá · renová · reafirmá los acuerdos</span>
+</div>
+
+<div class="compromisos-section">
+    <div class="compromisos-card">
+        <div class="comp-form">
+            <select id="comp_ref" class="zona-select">
+                <option value="" disabled selected>— ¿Sobre cuál compromiso? —</option>
+                <option value="Implementador para proceso FT y QA">Implementador para proceso FT y QA</option>
+                <option value="Cámaras prendidas en refinamiento">Cámaras prendidas en refinamiento</option>
+                <option value="Planificación de insumos en refinamiento">Planificación de insumos en refinamiento</option>
+                <option value="Estimar historia en último refinamiento">Estimar historia en último refinamiento</option>
+                <option value="Prueba de integración antes de RFT">Prueba de integración antes de RFT</option>
+            </select>
+            <input type="text" id="comp_responsable" class="input-field" placeholder="Responsable(s)..." autocomplete="off">
+            <input type="text" id="comp_accion" class="input-field" placeholder="¿Cómo lo reformulamos?" autocomplete="off">
+            <input type="text" id="comp_exito" class="input-field" placeholder="Nuevo criterio de éxito..." autocomplete="off">
+            <button class="btn-firmar" onclick="enviarCompromiso()">✍️ Firmar Ajuste con el DT</button>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th style="width:36%;">Acción</th>
+                        <th style="width:16%;">Responsable</th>
+                        <th style="width:30%;">Criterio de Éxito</th>
+                        <th style="width:18%;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-compromisos"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="divider"><hr></div>
+
+<!-- ══ 05 DOLORES PARA LA PRÓXIMA RETRO ══ -->
+<div class="seccion-titulo">
+    <span class="seccion-num">04</span>
+    <h2>Dolores para la <em>Próxima Retro</em></h2>
+    <div class="seccion-linea"></div>
+    <span class="seccion-sub">Dejá tu post-it · se trabaja la próxima</span>
+</div>
+
+<div class="dolores-wrap">
+    <div class="dolores-inner">
+        <div class="dolores-grid" id="dolores-grid">
+            <span id="dolores-empty" style="font-family:'Barlow Condensed';font-size:13px;color:rgba(255,255,255,0.2);letter-spacing:1px;align-self:center;">Todavía no hay post-its...</span>
+        </div>
+        <div class="dolores-form">
+            <textarea id="dolor-input" class="dolor-textarea" placeholder="Escribí un dolor o tema pendiente para trabajar en la próxima retro..." rows="1"></textarea>
+            <button class="btn-fijar" onclick="enviarDolor()">📌 Pegar</button>
+        </div>
+    </div>
+</div>
+
+<div style="height:40px;"></div>
+
+<!-- ══ FIREBASE + LÓGICA ══ -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAGc37LWpuPKpet2Wm3j4VZ1f65qsBWuI4",
+        authDomain: "pizarra-dt.firebaseapp.com",
+        databaseURL: "https://pizarra-dt-default-rtdb.firebaseio.com",
+        projectId: "pizarra-dt",
+        storageBucket: "pizarra-dt.firebasestorage.app",
+        messagingSenderId: "852895508831",
+        appId: "1:852895508831:web:df31df9cdb5cb4a52e2eea"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ── LABELS ──
+    const COMP_LABELS = {
+        comp1: 'Implementador FT/QA',
+        comp2: 'Cámaras en refi',
+        comp3: 'Insumos en refi',
+        comp4: 'Estimación en refi',
+        comp5: 'Integración → RFT'
+    };
+    const COMP_FULL = {
+        comp1: 'Implementador para proceso FT y QA',
+        comp2: 'Cámaras prendidas en refinamiento',
+        comp3: 'Planificación de insumos en refinamiento',
+        comp4: 'Estimar historia en último refinamiento',
+        comp5: 'Prueba de integración antes de RFT'
+    };
+
+    const SPRINT_ANT = [
+        { id:'sa-1', accion:'Considerar un implementador para proceso FT y QA', responsable:'Angie + Kari', exito:'Logrado / No logrado' },
+        { id:'sa-2', accion:'Cámaras prendidas en refinamiento',                 responsable:'Todos',         exito:'90% de cámaras prendidas' },
+        { id:'sa-3', accion:'Planificación de insumos necesarios en etapa de refi', responsable:'QA',          exito:'Los insumos deben estar detallados en la HU' },
+        { id:'sa-4', accion:'Estimar historia en último refinamiento',            responsable:'Todos',         exito:'Toda HU debe llegar ya estimada a planning' },
+        { id:'sa-5', accion:'Prueba de integración antes de pase a RFT',          responsable:'IT (DEV asignado)', exito:'La HU debe garantizar mínima funcionalidad antes de pasar a RFT' },
+    ];
+
+    function estadoClass(e) {
+        if (e==='Logrado')  return 'estado-logrado';
+        if (e==='En Curso') return 'estado-en-curso';
+        return 'estado-sin-avances';
+    }
+
+    // ── SPRINT ANTERIOR ──
+    function renderSprintAnterior(estados) {
+        const tbody = document.getElementById('tbody-sprint-anterior');
+        tbody.innerHTML = '';
+        SPRINT_ANT.forEach(c => {
+            const estado = (estados && estados[c.id]) || 'Sin Avances';
+            const tr = document.createElement('tr');
+            tr.id = 'sa-row-' + c.id;
+            tr.innerHTML = `
+                <td style="font-weight:600;">${c.accion}</td>
+                <td><span class="rol-tag">${c.responsable}</span></td>
+                <td style="color:rgba(255,255,255,0.8);font-size:13px;">${c.exito}</td>
+                <td>
+                    <select class="estado-select ${estadoClass(estado)}" id="sa-estado-${c.id}" onchange="cambiarEstadoSA('${c.id}',this)">
+                        <option value="Sin Avances" ${(estado==='Sin Avances'||estado==='Pendiente')?'selected':''}>🪨 Sin Avances</option>
+                        <option value="En Curso"  ${estado==='En Curso' ?'selected':''}>🔥 En Curso</option>
+                        <option value="Logrado"   ${estado==='Logrado'  ?'selected':''}>✅ Logrado</option>
+                    </select>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+    db.ref('sa-estados').once('value', snap => renderSprintAnterior(snap.val()));
+    db.ref('sa-estados').on('child_changed', snap => {
+        const sel = document.getElementById('sa-estado-' + snap.key);
+        if (sel) { sel.value = snap.val(); sel.className = 'estado-select ' + estadoClass(snap.val()); }
+    });
+    function cambiarEstadoSA(id, sel) {
+        sel.className = 'estado-select ' + estadoClass(sel.value);
+        db.ref('sa-estados/' + id).set(sel.value);
+        playSound('silbato');
+    }
+
+    let olasLocales = 999;
+
+    // ── AUDIO ──
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type==='silbato') {
+            osc.type='sine'; osc.frequency.setValueAtTime(900,audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(700,audioCtx.currentTime+0.15);
+            gain.gain.setValueAtTime(0.12,audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.2);
+            osc.start(); osc.stop(audioCtx.currentTime+0.2);
+        } else if (type==='gol') {
+            [880,1100,1320].forEach((f,i)=>{
+                const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+                o2.connect(g2); g2.connect(audioCtx.destination); o2.type='sine'; o2.frequency.value=f;
+                g2.gain.setValueAtTime(0.1,audioCtx.currentTime+i*0.08); g2.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+i*0.08+0.15);
+                o2.start(audioCtx.currentTime+i*0.08); o2.stop(audioCtx.currentTime+i*0.08+0.2);
+            });
+        } else if (type==='error') {
+            osc.type='sawtooth'; osc.frequency.setValueAtTime(200,audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(80,audioCtx.currentTime+0.2);
+            gain.gain.setValueAtTime(0.12,audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01,audioCtx.currentTime+0.2);
+            osc.start(); osc.stop(audioCtx.currentTime+0.2);
+        }
+    }
+
+    // ── REPORTES ──
+    let todosLosReportes = {};
+    function franjaClass(zona) {
+        if (zona==='gol') return 'franja-gol';
+        if (zona==='offside') return 'franja-offside';
+        return 'franja-pelota';
+    }
+
+    function enviarReporte() {
+        const compKey = document.getElementById('zona-comp').value;
+        const zona    = document.getElementById('resultado').value;
+        const texto   = document.getElementById('mensaje').value.trim();
+        if (!compKey) { alert('Elegí un compromiso primero'); playSound('error'); return; }
+        const label = COMP_LABELS[compKey] || compKey;
+        db.ref('reportes-dt').push({
+            zona, compKey, texto: texto || label, compLabel: label, votos: 0,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        document.getElementById('mensaje').value = '';
+        playSound('silbato');
+    }
+    document.getElementById('mensaje').addEventListener('keypress', e => { if(e.key==='Enter') enviarReporte(); });
+
+    db.ref('reportes-dt').on('child_added', snap => {
+        const key=snap.key, data=snap.val();
+        todosLosReportes[key]=data;
+        const col=document.getElementById('col-'+data.zona); if(!col) return;
+        const div=document.createElement('div');
+        div.className='tarjeta'; div.id='postit-'+key;
+        div.innerHTML=`
+            <div class="franja-top ${franjaClass(data.zona)}"></div>
+            <div style="text-align:center;"><span class="comp-badge">${data.compLabel||''}</span></div>
+            <p class="tarjeta-texto">${data.texto}</p>
+            <div class="tarjeta-footer">
+                <div class="ola-btn" onclick="votar('${key}')">🌊 <span class="votos-count" id="votos-${key}">${data.votos||0}</span></div>
+                <span class="del-btn" onclick="eliminarReporte('${key}')">🗑️</span>
+            </div>`;
+        col.appendChild(div);
+    });
+    db.ref('reportes-dt').on('child_changed', snap => {
+        const d=snap.val(); todosLosReportes[snap.key]=d;
+        const el=document.getElementById('votos-'+snap.key); if(el) el.innerText=d.votos;
+    });
+    db.ref('reportes-dt').on('child_removed', snap => {
+        delete todosLosReportes[snap.key];
+        const el=document.getElementById('postit-'+snap.key); if(el) el.remove();
+    });
+
+    function votar(key) {
+        db.ref(`reportes-dt/${key}/votos`).transaction(v=>(v||0)+1);
+        playSound('silbato');
+    }
+    function eliminarReporte(key) { db.ref(`reportes-dt/${key}`).remove(); playSound('error'); }
+
+    // ── TABLA DE POSICIONES ──
+    function abrirTabla() {
+        // Calcular GF y GC por compKey
+        const stats = {};
+        Object.values(todosLosReportes).forEach(r => {
+            if (!r.compKey) return;
+            if (!stats[r.compKey]) stats[r.compKey] = { gf:0, gc:0 };
+            if (r.zona === 'gol')     stats[r.compKey].gf++;
+            if (r.zona === 'offside') stats[r.compKey].gc++;
+            // pelota parada: no suma ni resta
+        });
+
+        // Filtrar solo los que tienen GF o GC > 0
+        const rows = Object.entries(stats)
+            .map(([key, s]) => ({ key, label: COMP_FULL[key] || key, gf: s.gf, gc: s.gc, dif: s.gf - s.gc }))
+            .filter(r => r.gf > 0 || r.gc > 0)
+            .sort((a,b) => b.dif - a.dif || b.gf - a.gf);
+
+        const tbody = document.getElementById('pos-tbody');
+        tbody.innerHTML = '';
+
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:rgba(255,255,255,0.3);padding:24px;font-family:'Barlow Condensed';letter-spacing:1px;">Todavía no hay posts registrados</td></tr>`;
+        } else {
+            const maxAbs = Math.max(...rows.map(r => Math.abs(r.dif)), 1);
+            const medals = ['🥇','🥈','🥉'];
+            rows.forEach((r, i) => {
+                const difClass = r.dif > 0 ? 'pos-dif-pos' : r.dif < 0 ? 'pos-dif-neg' : 'pos-dif-cero';
+                const difStr   = r.dif > 0 ? '+'+r.dif : String(r.dif);
+                const barW     = Math.round((Math.abs(r.dif) / maxAbs) * 80);
+                const barClass = r.dif >= 0 ? '' : 'neg';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="pos-rank">${medals[i] || (i+1)}</td>
+                    <td class="pos-nombre">${r.label}</td>
+                    <td class="pos-gf">${r.gf}</td>
+                    <td class="pos-gc">${r.gc}</td>
+                    <td class="${difClass}">${difStr}</td>
+                    <td class="pos-bar-wrap"><div class="pos-bar ${barClass}" style="width:${barW}px;"></div></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+        document.getElementById('modal-tabla').classList.add('visible');
+        playSound('gol');
+    }
+    function cerrarTabla() {
+        document.getElementById('modal-tabla').classList.remove('visible');
+    }
+    document.getElementById('modal-tabla').addEventListener('click', e => {
+        if (e.target === document.getElementById('modal-tabla')) cerrarTabla();
+    });
+
+    // ── ETIQUETAS ──
+
+
+
+    // ── DOLORES ──
+    function enviarDolor() {
+        const ta=document.getElementById('dolor-input');
+        const texto=ta.value.trim(); if(!texto){ playSound('error'); return; }
+        db.ref('dolores-dt').push({ texto, timestamp:firebase.database.ServerValue.TIMESTAMP });
+        ta.value=''; playSound('silbato');
+    }
+    document.getElementById('dolor-input').addEventListener('keypress', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); enviarDolor(); } });
+    db.ref('dolores-dt').on('child_added', snap=>{
+        const key=snap.key, d=snap.val();
+        const empty=document.getElementById('dolores-empty'); if(empty) empty.remove();
+        const grid=document.getElementById('dolores-grid');
+        const div=document.createElement('div');
+        div.className='dolor-postit'; div.id='dolor-'+key;
+        div.innerHTML=`<span class="dolor-del" onclick="eliminarDolor('${key}')">✕</span>${d.texto}`;
+        grid.appendChild(div);
+    });
+    db.ref('dolores-dt').on('child_removed', snap=>{
+        const el=document.getElementById('dolor-'+snap.key); if(el) el.remove();
+        const grid=document.getElementById('dolores-grid');
+        if(grid.children.length===0) grid.innerHTML='<span id="dolores-empty" style="font-family:\'Barlow Condensed\';font-size:13px;color:rgba(255,255,255,0.2);letter-spacing:1px;align-self:center;">Todavía no hay post-its...</span>';
+    });
+    function eliminarDolor(key){ db.ref(`dolores-dt/${key}`).remove(); playSound('error'); }
+
+    // ── NUEVOS COMPROMISOS ──
+    function enviarCompromiso() {
+        const ref=document.getElementById('comp_ref').value;
+        const r=document.getElementById('comp_responsable').value.trim();
+        const a=document.getElementById('comp_accion').value.trim();
+        const e=document.getElementById('comp_exito').value.trim();
+        if(!ref||!r||!a||!e){ alert('Completá todos los campos'); playSound('error'); return; }
+        db.ref('compromisos-dt').push({ accion:ref+' → '+a, responsable:r, exito:e, estado:'Sin Avances' });
+        document.getElementById('comp_accion').value='';
+        document.getElementById('comp_responsable').value='';
+        document.getElementById('comp_exito').value='';
+        document.getElementById('comp_ref').selectedIndex=0;
+        playSound('gol');
+    }
+    db.ref('compromisos-dt').on('child_added', snap=>{
+        const key=snap.key,d=snap.val(),estado=d.estado||'Sin Avances';
+        const tbody=document.getElementById('tabla-compromisos');
+        if(document.getElementById('compromiso-'+key)) return;
+        const tr=document.createElement('tr');
+        tr.id='compromiso-'+key;
+        tr.innerHTML=`
+            <td style="font-weight:600;">${d.accion}</td>
+            <td><span class="rol-tag">${d.responsable}</span></td>
+            <td style="color:rgba(255,255,255,0.8);font-size:13px;">${d.exito}</td>
+            <td>
+                <select class="estado-select ${estadoClass(estado)}" id="estado-${key}" onchange="cambiarEstado('${key}',this)">
+                    <option value="Sin Avances" ${(estado==='Sin Avances'||estado==='Pendiente')?'selected':''}>🪨 Sin Avances</option>
+                    <option value="En Curso"  ${estado==='En Curso' ?'selected':''}>🔥 En Curso</option>
+                    <option value="Logrado"   ${estado==='Logrado'  ?'selected':''}>✅ Logrado</option>
+                </select>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+    db.ref('compromisos-dt').on('child_changed', snap=>{
+        const sel=document.getElementById('estado-'+snap.key);
+        if(sel){ sel.value=snap.val().estado; sel.className='estado-select '+estadoClass(snap.val().estado); }
+    });
+    db.ref('compromisos-dt').on('child_removed', snap=>{
+        const el=document.getElementById('compromiso-'+snap.key); if(el) el.remove();
+    });
+    function cambiarEstado(key,sel){
+        sel.className='estado-select '+estadoClass(sel.value);
+        db.ref(`compromisos-dt/${key}`).update({estado:sel.value});
+        playSound('silbato');
+    }
+
+    // ── CRONÓMETRO ──
+    let intervalo, tiempoLocal=0, pausado=false;
+    function iniciarCronometro(){ const min=parseInt(document.getElementById('fase-actual').value); db.ref('cmd-dt').set({accion:'iniciar',minutos:min,id:Date.now()}); }
+    function pausarCronometro() { db.ref('cmd-dt').set({accion:'toggle_pausa',id:Date.now()}); }
+    function resetearCronometro(){ db.ref('cmd-dt').set({accion:'resetear',id:Date.now()}); }
+    db.ref('cmd-dt').on('value', snap=>{
+        const cmd=snap.val(); if(!cmd) return;
+        if(cmd.accion==='iniciar'){ pausado=false; document.getElementById('btn-pausa').innerText='⏸ Pausar'; correrReloj(cmd.minutos*60); }
+        else if(cmd.accion==='toggle_pausa'){
+            const btn=document.getElementById('btn-pausa');
+            if(pausado){ pausado=false; btn.innerText='⏸ Pausar'; correrReloj(tiempoLocal); }
+            else{ pausado=true; btn.innerText='▶ Reanudar'; clearInterval(intervalo); playSound('error'); }
+        } else if(cmd.accion==='resetear'){
+            clearInterval(intervalo); pausado=false; tiempoLocal=0;
+            const disp=document.getElementById('reloj'); disp.innerText='00:00'; disp.className='';
+            document.getElementById('btn-pausa').innerText='⏸ Pausar';
+        } else if(cmd.accion==='purgar'){
+            clearInterval(intervalo); pausado=false; tiempoLocal=0;
+            document.getElementById('reloj').innerText='00:00';
+            ['gol','offside','pelota'].forEach(z=>document.getElementById('col-'+z).innerHTML='');
+            playSound('error');
+        }
+    });
+    function correrReloj(segs){
+        clearInterval(intervalo); tiempoLocal=segs;
+        const disp=document.getElementById('reloj'); disp.className=''; playSound('silbato');
+        intervalo=setInterval(()=>{
+            tiempoLocal--;
+            const m=Math.floor(tiempoLocal/60),s=tiempoLocal%60;
+            disp.innerText=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            if(tiempoLocal<=60) disp.classList.add('reloj-urgente');
+            if(tiempoLocal<=0){ clearInterval(intervalo); playSound('error'); disp.innerText='00:00'; }
+        },1000);
+    }
+
+    // ── PITAZO FINAL ──
+    function pitazoFinal(){
+        if(!confirm('🏁 ¿Pitazo final? Limpia posts, etiquetas y dolores. Compromisos y estados se mantienen. ¿Confirmás?')) return;
+        db.ref('reportes-dt').remove();
+        db.ref('etiquetas-dt').remove();
+        db.ref('dolores-dt').remove();
+        db.ref('cmd-dt').set({accion:'purgar',id:Date.now()});
+    }
+</script>
+</body>
+</html>
